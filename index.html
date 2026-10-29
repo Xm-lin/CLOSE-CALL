@@ -1,0 +1,1325 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>無盡滑軌</title>
+  <style>
+    * {
+      box-sizing: border-box
+    }
+
+    html,
+    body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background: #e9e6de;
+      color: #242724;
+      font-family: Arial, 'Noto Sans TC', sans-serif
+    }
+
+    button {
+      font: inherit;
+      border: 1px solid #242724;
+      border-radius: 0;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+      min-height: 44px;
+      padding: 10px 18px
+    }
+
+    button:hover {
+      background: #d3d1c8
+    }
+
+    button:focus-visible {
+      outline: 3px solid #dd552f;
+      outline-offset: 3px
+    }
+
+    #app {
+      height: 100%;
+      max-width: 1100px;
+      margin: auto;
+      display: flex;
+      flex-direction: column;
+      border-left: 1px solid #b6b7ae;
+      border-right: 1px solid #b6b7ae
+    }
+
+    header {
+      height: 74px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      border-bottom: 1px solid #b6b7ae
+    }
+
+    h1 {
+      font-size: 19px;
+      margin: 0;
+      letter-spacing: 2px
+    }
+
+    header small {
+      font-size: 10px;
+      letter-spacing: 3px;
+      display: block;
+      margin-top: 5px;
+      color: #73776b
+    }
+
+
+
+    main {
+      position: relative;
+      flex: 1;
+      overflow: hidden;
+      background: #252d2a
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: none
+    }
+
+    .hud {
+      position: absolute;
+      top: 22px;
+      left: 24px;
+      right: 24px;
+      display: flex;
+      justify-content: space-between;
+      pointer-events: none;
+      color: #f0ede3
+    }
+
+    .stat small {
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: #adb4a7
+    }
+
+    .stat b {
+      display: block;
+      font-size: 31px;
+      line-height: 1.25;
+      font-weight: 500;
+      font-variant-numeric: tabular-nums
+    }
+
+    .stat.right {
+      text-align: right
+    }
+
+    .stat em {
+      font-style: normal;
+      font-size: 13px
+    }
+
+    .bar {
+      height: 3px;
+      width: 92px;
+      background: #4a554b;
+      margin-top: 9px
+    }
+
+    .bar i {
+      display: block;
+      height: 100%;
+      background: #e5a849;
+      width: 100%
+    }
+
+    #hint {
+      position: absolute;
+      bottom: 25px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      color: #b1b8aa;
+      font-size: 11px;
+      letter-spacing: 2px;
+      pointer-events: none
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #202723a8;
+      padding: 22px
+    }
+
+    .panel {
+      width: 380px;
+      background: #e9e6de;
+      border: 1px solid #242724;
+      padding: 30px
+    }
+
+    .eyebrow {
+      font-size: 10px;
+      letter-spacing: 3px;
+      color: #73776b
+    }
+
+    .panel h2 {
+      font-size: 38px;
+      letter-spacing: 3px;
+      margin: 16px 0
+    }
+
+    .panel p {
+      font-size: 13px;
+      line-height: 1.9;
+      color: #5f655b
+    }
+
+    .panel .primary {
+      width: 100%;
+      background: #d95230;
+      color: #fff;
+      border-color: #d95230;
+      margin-top: 15px
+    }
+
+    .panel .primary:hover {
+      background: #bf4224
+    }
+
+    .instructions {
+      display: flex;
+      border-top: 1px solid #bbbdb2;
+      border-bottom: 1px solid #bbbdb2;
+      margin: 22px 0;
+      padding: 14px 0;
+      justify-content: space-between;
+      font-size: 12px
+    }
+
+    .instructions span {
+      color: #73776b;
+      font-size: 10px;
+      display: block;
+      margin-top: 7px
+    }
+
+    .result {
+      font-size: 45px;
+      font-variant-numeric: tabular-nums;
+      margin: 15px 0
+    }
+
+    .result small {
+      font-size: 14px
+    }
+
+    footer {
+      flex-shrink: 0;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      font-size: 10px;
+      letter-spacing: 1px;
+      color: #6c7267
+    }
+
+    .hidden {
+      display: none !important
+    }
+
+    .controls {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      right: 16px;
+      display: flex;
+      justify-content: space-between;
+      pointer-events: none
+    }
+
+    .controls button {
+      pointer-events: auto;
+      width: 84px;
+      height: 58px;
+      background: transparent;
+      border-color: transparent;
+      color: #e9e6de;
+      font-size: 23px;
+      touch-action: none;
+      user-select: none
+    }
+
+    .controls button:hover {
+      background: transparent
+    }
+
+    .controls button.held {
+      background: transparent;
+      color: #e5a849
+    }
+
+    body.playing #hint {
+      bottom: 91px
+    }
+
+    @media(min-width:800px) {
+      .controls {
+        opacity: .5
+      }
+    }
+
+    @media(max-width:600px) {
+      header {
+        height: 64px;
+        padding: 0 16px
+      }
+
+      h1 {
+        font-size: 16px
+      }
+
+      .hud {
+        left: 17px;
+        right: 17px;
+        top: 18px
+      }
+
+      .stat b {
+        font-size: 25px
+      }
+
+      footer {
+        padding: 0 16px;
+        height: 40px
+      }
+
+      .panel {
+        padding: 25px
+      }
+
+      .panel h2 {
+        font-size: 32px
+      }
+    }
+
+    .hud>.stat:first-child {
+      margin-top: 126px
+    }
+
+    /* 遊戲介面停用 iOS 長按選字、系統選單與拖曳。 */
+    #app,
+    #app * {
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent
+    }
+
+    .controls button {
+      -webkit-user-drag: none
+    }
+
+    #lapToast {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 42%;
+      text-align: center;
+      pointer-events: none;
+      font-size: clamp(48px, 9vw, 88px);
+      font-weight: 600;
+      color: #f0ede3;
+      opacity: 0;
+      letter-spacing: 2px
+    }
+
+    #lapToast.show {
+      animation: lapFade 2.2s ease-out forwards
+    }
+
+    @keyframes lapFade {
+      0% {
+        opacity: 0
+      }
+
+      12%,
+      48% {
+        opacity: .55
+      }
+
+      100% {
+        opacity: 0
+      }
+    }
+
+    .panel h2 {
+      font-size: 28px;
+      letter-spacing: 0
+    }
+
+    .instructions {
+      line-height: 2
+    }
+      main { min-height: 0; }
+    .overlay { overflow-y: auto; }
+    .panel { max-height: 100%; overflow-y: auto; }
+    #helpButton { font-size: 12px; padding: 8px 12px; }
+    #mapMenu { margin: 18px 0 4px; }
+    #mapMenu label { display: block; font-size: 12px; margin-bottom: 8px; }
+    #mapSelect { width: 100%; min-height: 44px; border: 1px solid #72786b; border-radius: 0; background: #e9e6de; color: #242724; padding: 8px; font: inherit; font-size: 14px; }
+    .map-actions { display: flex; gap: 8px; margin-top: 10px; }
+    .map-actions button { flex: 1; font-size: 12px; padding: 6px; }
+    #mapStatus { font-size: 11px; margin: 8px 0; overflow-wrap: anywhere; }
+    button:disabled { opacity: .4; cursor: default; }
+    #mapHelp { width: min(440px, 90vw); max-height: 85vh; overflow-y: auto; border: 1px solid #242724; border-radius: 0; padding: 24px; color: #242724; background: #e9e6de; }
+    #mapHelp::backdrop { background: #202723b0; }
+    #mapHelp h2 { font-size: 20px; margin-top: 0; }
+    #mapHelp p { font-size: 13px; line-height: 1.8; }
+    #mapHelp pre { font-size: 12px; white-space: pre-wrap; }
+    #closeHelp { width: 100%; }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    <header>
+      <div>
+        <h1>好玩遊戲</h1>
+      </div>
+      <button id="helpButton" type="button">如何匯入地圖</button>
+    </header>
+    <main><canvas id="game" aria-label="無盡滑軌遊戲"></canvas>
+      <div class="hud">
+        <div class="stat"><small>里程</small><b id="distance">0000<em> m</em></b></div>
+        <div class="stat right"><small>分數</small><b id="score">0</b><small id="multi">×1.0</small></div>
+      </div>
+      <div id="lapToast" role="status" aria-live="polite"></div>
+      <div class="controls hidden" id="controls"><button id="left" aria-label="向左轉">←</button><button id="right"
+          aria-label="向右轉">→</button></div>
+      <div id="overlay" class="overlay">
+        <section class="panel">
+          <h2 id="title">開始遊戲</h2>
+          <div id="result" class="result hidden"></div>
+          <p id="description" class="hidden"></p>
+          <div id="mapMenu">
+            <label for="mapSelect">地圖</label>
+            <select id="mapSelect" aria-label="選擇地圖"></select>
+            <div class="map-actions"><button id="importMap" type="button">匯入座標檔</button><button id="refreshMaps" type="button">重新讀取</button></div>
+            <input id="mapFile" type="file" accept=".txt,.json,text/plain,application/json" multiple hidden>
+            <p id="mapStatus" role="status"></p>
+          </div>
+          <div class="instructions" id="instructions">電腦：← →／A D 轉向<br>手機：按住左右鍵</div><button class="primary"
+            id="start" disabled>開始</button>
+          <p id="best" style="margin-bottom:0;font-size:11px"></p>
+        </section>
+      </div>
+    </main>
+  </div>
+  <dialog id="mapHelp">
+    <h2>如何匯入地圖</h2>
+    <p>選單按「匯入座標檔」，選擇 .txt 檔即可加入地圖。</p>
+    <p>座標依序排列，至少 4 點，最後會自動接回起點。</p>
+    <pre>[[0, 0], [0, -1500],
+ [2200, -1500], [2200, 0]]</pre>
+    <p>也可每行一組 x,y。地圖名稱使用檔名。</p>
+    <p>新增地圖：把 .txt 上傳到 GitHub 的 map 資料夾，網站更新後按「重新讀取」。無法取得清單時會使用 maps.js 備份；也可直接匯入檔案。</p>
+    <button id="closeHelp" type="button">關閉</button>
+  </dialog>
+  <script src="map.config.js"></script>
+  <script src="maps.js"></script>
+  <script>
+'use strict';
+// ===== 賽道設定：修改後儲存 HTML，再重新整理 =====
+const TRACK_CONFIG = {
+  trackScale: 1, // 全圖大小；不會自動放大。
+  cornerRadius: 175, // 彎角銜接半徑；越小越急，建議 160～240。
+  // 依序連成直線，只在轉角留短圓弧。最後自動接回第一點。
+  // [x, y]：向右 x 增加，向下 y 增加。避免線段交叉、道路重疊。
+  points: [] // 由所選地圖或匯入座標檔載入。
+};
+// ===== 賽道設定結束 =====
+
+const $ = id => document.getElementById(id),
+  canvas = $('game'),
+  ctx = canvas.getContext('2d');
+let W = 0,
+  H = 0,
+  dpr = 1,
+  state = 'ready',
+  last = 0,
+  acc = 0,
+  sound = false,
+  audio = null;
+let best = 0;
+try {
+  best = Number(localStorage.getItem('sliptrack-best-score') || 0)
+} catch {}
+let keys = {
+    left: false,
+    right: false
+  },
+  points = [],
+  seed = 1729,
+  heading = 0,
+  turn = 0,
+  target = 0,
+  segment = 0,
+  total = 0,
+  px = 0,
+  py = 0,
+  angle = 0,
+  travelAngle = 0,
+  progress = 0,
+  score = 0,
+  clean = 0,
+  grip = 1,
+  speed = 0,
+  time = 0,
+  camX = 0,
+  camY = 0,
+  camAngle = 0,
+  mapBounds = null,
+  driftTimer = 0,
+  steerHold = 0,
+  previousSteering = 0,
+  skids = [],
+  lastSkid = null,
+  skidClock = 0;
+// 甩尾秒數與收尾時間；收尾同步降低轉向幅度、恢復抓地。
+const DRIFT_DURATION = 3.0,
+  DRIFT_RECOVERY = .65;
+const STEP = 8,
+  HALF = 80,
+  TURN = 1.05;
+
+function random() {
+  seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+  return seed / 4294967296
+}
+// 封閉賽道只建立一次；每一圈使用相同的路線。
+function generate() {
+  if (points.length > 2) return;
+  const controls = TRACK_CONFIG.points,
+    n = controls.length,
+    raw = [],
+    corners = [];
+  // 直線加相切圓弧：保留 90 度轉向與髮夾結構，不以整條曲線攤平。
+  for (let i = 0; i < n; i++) {
+    const a = controls[(i + n - 1) % n],
+      b = controls[i],
+      c = controls[(i + 1) % n],
+      la = Math.hypot(b[0] - a[0], b[1] - a[1]),
+      lb = Math.hypot(c[0] - b[0], c[1] - b[1]),
+      ux = (b[0] - a[0]) / la,
+      uy = (b[1] - a[1]) / la,
+      vx = (c[0] - b[0]) / lb,
+      vy = (c[1] - b[1]) / lb,
+      theta = Math.atan2(ux * vy - uy * vx, ux * vx + uy * vy),
+      tan = Math.tan(Math.abs(theta) / 2),
+      trim = Math.min(TRACK_CONFIG.cornerRadius * tan, la * .44, lb * .44),
+      radius = tan > 1e-6 ? trim / tan : 0,
+      sign = Math.sign(theta),
+      entry = {
+        x: b[0] - ux * trim,
+        y: b[1] - uy * trim
+      },
+      exit = {
+        x: b[0] + vx * trim,
+        y: b[1] + vy * trim
+      },
+      center = {
+        x: entry.x - uy * radius * sign,
+        y: entry.y + ux * radius * sign
+      };
+    corners.push({
+      entry,
+      exit,
+      center,
+      radius,
+      theta,
+      start: Math.atan2(entry.y - center.y, entry.x - center.x)
+    })
+  }
+  for (let i = 0; i < n; i++) {
+    const c = corners[i],
+      next = corners[(i + 1) % n],
+      arcSteps = Math.max(1, Math.ceil(Math.abs(c.theta) * c.radius / 5));
+    for (let j = 0; j < arcSteps; j++) {
+      const a = c.start + c.theta * j / arcSteps;
+      raw.push({
+        x: c.center.x + c.radius * Math.cos(a),
+        y: c.center.y + c.radius * Math.sin(a)
+      })
+    }
+    const steps = Math.max(1, Math.ceil(Math.hypot(next.entry.x - c.exit.x, next.entry.y - c
+      .exit
+      .y) / 5));
+    for (let j = 0; j < steps; j++) {
+      const t = j / steps;
+      raw.push({
+        x: c.exit.x + (next.entry.x - c.exit.x) * t,
+        y: c.exit.y + (next.entry.y - c.exit.y) * t
+      })
+    }
+  }
+  // 移除直線節點產生的重複取樣，避免碰撞計算除以零。
+  for (let i = raw.length - 1; i > 0; i--) {
+    if (Math.hypot(raw[i].x - raw[i - 1].x, raw[i].y - raw[i - 1].y) < 1e-7) raw.splice(i, 1);
+  }
+  if (Math.hypot(raw.at(-1).x - raw[0].x, raw.at(-1).y - raw[0].y) < 1e-7) raw.pop();
+  // 起跑位置留一小段直線，前方即可看到第一個直角彎。
+  let start = 0,
+    dist = Infinity;
+  raw.forEach((p, i) => {
+    const d = Math.hypot(p.x, p.y + 500);
+    if (d < dist) {
+      dist = d;
+      start = i
+    }
+  });
+  raw.push(...raw.splice(0, start));
+  const origin = raw[0],
+    next = raw[1],
+    heading = Math.atan2(next.x - origin.x, -(next.y - origin.y)),
+    co = Math.cos(heading),
+    si = Math.sin(heading),
+    size = TRACK_CONFIG.trackScale;
+  points = [];
+  total = 0;
+  let minX = Infinity,
+    maxX = -Infinity,
+    minY = Infinity,
+    maxY = -Infinity;
+  for (let i = 0; i <= raw.length; i++) {
+    const p = raw[i % raw.length],
+      dx = p.x - origin.x,
+      dy = p.y - origin.y,
+      x = (co * dx + si * dy) * size,
+      y = (-si * dx + co * dy) * size;
+    if (i) total += Math.hypot(x - points[i - 1].x, y - points[i - 1].y);
+    points.push({
+      x,
+      y,
+      s: total
+    });
+    minX = Math.min(minX, x);
+    maxX = Math.max(maxX, x);
+    minY = Math.min(minY, y);
+    maxY = Math.max(maxY, y)
+  }
+  mapBounds = {
+    minX,
+    maxX,
+    minY,
+    maxY
+  }
+}
+
+function parseTrackPoints(text) {
+  const cleanText = text.replace(/^\uFEFF/, '').trim();
+  if (!cleanText) throw new Error('座標檔是空的');
+  let list;
+  try {
+    list = JSON.parse(cleanText.replace(/,\s*]/g, ']'));
+  } catch {
+    const lines = cleanText.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+    list = lines.map((line, i) => {
+      const match = line.match(
+        /^\[?\s*(-?\d+(?:\.\d+)?)\s*[,\s]\s*(-?\d+(?:\.\d+)?)\s*\]?,?$/);
+      if (!match) throw new Error('第 ' + (i + 1) + ' 行格式錯誤，請使用 [x, y] 或 x,y');
+      return [Number(match[1]), Number(match[2])];
+    });
+  }
+  if (!Array.isArray(list)) throw new Error('請使用座標陣列');
+  if (list.some(p => !Array.isArray(p) || p.length !== 2 || !p.every(Number.isFinite))) {
+    throw new Error('每個座標必須是兩個數字：[x, y]');
+  }
+  list = list.map(p => [...p]);
+  if (list.length > 1 && list[0][0] === list.at(-1)[0] && list[0][1] === list.at(-1)[1]) list
+    .pop();
+  if (list.length < 4) throw new Error('至少需要 4 個座標');
+  if (list.length > 2000) throw new Error('座標數量過多');
+  for (let i = 0; i < list.length; i++) {
+    const a = list[(i + list.length - 1) % list.length],
+      b = list[i],
+      c = list[(i + 1) % list.length];
+    const ux = b[0] - a[0],
+      uy = b[1] - a[1],
+      vx = c[0] - b[0],
+      vy = c[1] - b[1];
+    if (Math.hypot(vx, vy) < .01) throw new Error('第 ' + (i + 1) + ' 點與下一點重複');
+    if (Math.abs(Math.atan2(ux * vy - uy * vx, ux * vx + uy * vy)) > Math.PI - .001) {
+      throw new Error('第 ' + (i + 1) + ' 點直接折返，請補上彎道節點');
+    }
+  }
+  return list;
+}
+
+
+let trackReady = false,
+  mapEntries = [],
+  selectedMapId = '',
+  selectionRevision = 0;
+
+function scoreKey() {
+  return 'sliptrack-best-score:' + selectedMapId;
+}
+
+function pointHash(list) {
+  let hash = 2166136261;
+  for (const c of JSON.stringify(list)) hash = Math.imul(hash ^ c.charCodeAt(0), 16777619);
+  return (hash >>> 0).toString(16);
+}
+
+function mapName(filename) {
+  return filename.replace(/\.txt$|\.json$/i, '').replace(/^\d+[_ -]/, '');
+}
+
+function applyMap(text, name) {
+  const list = parseTrackPoints(text);
+  // 避免不合理的大檔案讓取樣數量失控。
+  let length = 0;
+  for (let i = 0; i < list.length; i++) length += Math.hypot(list[i][0] - list[(i + 1) % list
+    .length][0], list[i][1] - list[(i + 1) % list.length][1]);
+  if (length > 300000) throw new Error('地圖過大，請縮小座標範圍');
+  TRACK_CONFIG.points = list;
+  selectedMapId = pointHash(list);
+  points = [];
+  total = progress = score = px = py = angle = travelAngle = camX = camY = camAngle = time = 0;
+  skids = [];
+  lastSkid = null;
+  shownLap = 1;
+  driftTimer = steerHold = 0;
+  generate();
+  best = 0;
+  try {
+    best = Number(localStorage.getItem(scoreKey()) || (name === '經典試煉' ? localStorage.getItem(
+      'sliptrack-best-score') : 0) || 0);
+  } catch {}
+  trackReady = true;
+  state = 'ready';
+  clear();
+  $('overlay').classList.remove('hidden');
+  $('controls').classList.add('hidden');
+  document.body.classList.remove('playing');
+  for (const id of ['title', 'instructions', 'best', 'mapMenu']) $(id).classList.remove(
+    'hidden');
+  $('result').classList.add('hidden');
+  $('lapToast').classList.remove('show');
+  $('title').textContent = '開始遊戲';
+  $('start').textContent = '開始';
+  $('start').disabled = false;
+  $('distance').innerHTML = '0000<em> m</em>';
+  $('score').textContent = '0';
+  $('multi').textContent = '×1.0';
+  $('mapStatus').textContent = name + ' · ' + list.length + ' 點';
+  updateBest();
+}
+
+function renderMapOptions(preferred) {
+  $('mapSelect').replaceChildren();
+  for (const map of mapEntries) {
+    const option = document.createElement('option');
+    option.value = map.id;
+    option.textContent = map.name;
+    $('mapSelect').appendChild(option);
+  }
+  $('mapSelect').value = mapEntries.some(m => m.id === preferred) ? preferred : (mapEntries[0]
+    ?.id || '');
+}
+async function selectMap(id) {
+  const map = mapEntries.find(m => m.id === id);
+  if (!map) return;
+  const revision = ++selectionRevision;
+  $('start').disabled = true;
+  $('mapStatus').textContent = '載入中…';
+  try {
+    let text = map.text;
+    if (text === undefined) {
+      const response = await fetch('map/' + encodeURIComponent(map.file), {
+        cache: 'no-store'
+      });
+      if (!response.ok) throw new Error('無法讀取 ' + map.name);
+      text = await response.text();
+    }
+    if (revision !== selectionRevision) return;
+    applyMap(text, map.name);
+  } catch (error) {
+    if (revision !== selectionRevision) return;
+    trackReady = false;
+    $('start').disabled = true;
+    $('mapStatus').textContent = error.message;
+  }
+}
+async function githubMapList() {
+  const config = window.GITHUB_MAP_SOURCE || {};
+  let owner = config.owner,
+    repo = config.repo,
+    path = config.path;
+  if ((!owner || !repo) && location.hostname.endsWith('.github.io')) {
+    owner = location.hostname.split('.')[0];
+    const parts = decodeURIComponent(new URL('.', location.href).pathname).split('/').filter(Boolean);
+    repo = parts.shift() || owner + '.github.io';
+    path ??= [...parts, 'map'].join('/');
+  }
+  if (!owner || !repo) return null;
+  path ||= 'map';
+  const url = new URL('https://api.github.com/repos/' + encodeURIComponent(owner) + '/' + encodeURIComponent(repo) + '/contents/' + path.split('/').map(encodeURIComponent).join('/'));
+  if (config.branch) url.searchParams.set('ref', config.branch);
+  const controller = new AbortController(),
+    timeout = setTimeout(() => controller.abort(), 5000);
+  try {
+    const response = await fetch(url, {
+      headers: {
+        Accept: 'application/vnd.github+json'
+      },
+      signal: controller.signal
+    });
+    if (!response.ok) return null;
+    const records = await response.json();
+    if (!Array.isArray(records)) return null;
+    return records.filter(m => m.type === 'file' && /\.txt$/i.test(m.name)).map(m => ({
+      file: m.name
+    })).sort((a, b) => a.file.localeCompare(b.file));
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function refreshMapList() {
+  const previous = $('mapSelect').value,
+    imported = mapEntries.filter(m => m.imported);
+  $('refreshMaps').disabled = true;
+  try {
+    const records = location.protocol === 'file:' ? null : await githubMapList();
+    if (records !== null) {
+      mapEntries = records.map(m => ({
+        id: 'file:' + m.file,
+        file: m.file,
+        name: mapName(m.file)
+      }));
+    } else {
+      mapEntries = (window.BUILTIN_MAPS || []).map(m => ({
+        id: 'file:' + m.file,
+        file: m.file,
+        name: mapName(m.file),
+        ...(location.protocol === 'file:' ? {
+          text: JSON.stringify(m.points)
+        } : {})
+      }));
+    }
+    mapEntries.push(...imported);
+    renderMapOptions(previous);
+    if (mapEntries.length) await selectMap($('mapSelect').value);
+    else {
+      $('mapStatus').textContent = '沒有地圖，請匯入座標檔';
+      trackReady = false;
+      $('start').disabled = true;
+    }
+  } finally {
+    $('refreshMaps').disabled = false;
+  }
+}
+
+$('mapSelect').addEventListener('change', () => selectMap($('mapSelect').value));
+$('refreshMaps').onclick = refreshMapList;
+$('importMap').onclick = () => $('mapFile').click();
+$('mapFile').addEventListener('change', async e => {
+  const files = [...e.target.files];
+  if (!files.length) return;
+  ++selectionRevision;
+  let first = null;
+  const errors = [];
+  for (const file of files) {
+    try {
+      const list = parseTrackPoints(await file.text()),
+        id = 'import:' + pointHash(list);
+      if (!mapEntries.some(m => m.id === id)) mapEntries.push({
+        id,
+        name: mapName(file.name),
+        text: JSON.stringify(list),
+        imported: true
+      });
+      first ??= id;
+    } catch (error) {
+      errors.push(file.name + '：' + error.message);
+    }
+  }
+  e.target.value = '';
+  if (first) {
+    renderMapOptions(first);
+    await selectMap(first);
+  }
+  if (errors.length) $('mapStatus').textContent = errors.join('；');
+});
+$('helpButton').onclick = () => {
+  if (state === 'running') pause();
+  clear();
+  $('mapHelp').showModal();
+};
+$('closeHelp').onclick = () => $('mapHelp').close();
+// 匯入視窗與選單的方向鍵、空白鍵不傳入遊戲。
+$('mapHelp').addEventListener('keydown', e => e.stopPropagation());
+$('mapMenu').addEventListener('keydown', e => e.stopPropagation());
+
+function updateBest() {
+  $('best').textContent = '最高分 ' + Math.floor(best)
+}
+let shownLap = 1;
+
+function showLap(lap) {
+  const el = $('lapToast');
+  el.textContent = 'Trap ' + lap;
+  el.classList.remove('show');
+  void el.offsetWidth;
+  el.classList.add('show')
+}
+
+function reset() {
+  seed = 1729;
+  heading = turn = target = segment = total = px = py = angle = travelAngle = progress = score =
+    clean = time = 0;
+  grip = 1;
+  speed = 310;
+  driftTimer = 0;
+  steerHold = 0;
+  previousSteering = 0;
+  skids = [];
+  lastSkid = null;
+  skidClock = 0;
+  points = [{
+    x: 0,
+    y: 200,
+    s: -200,
+    a: 0
+  }, {
+    x: 0,
+    y: 0,
+    s: 0,
+    a: 0
+  }];
+  camX = 0;
+  camY = 0;
+  camAngle = 0;
+  generate();
+  keys.left = keys.right = false;
+  state = 'running';
+  $('mapMenu').classList.add('hidden');
+  $('distance').innerHTML = '0000<em> m</em>';
+  $('score').textContent = '0';
+  $('multi').textContent = '×1.0';
+  $('overlay').classList.add('hidden');
+  $('controls').classList.remove('hidden');
+  document.body.classList.add('playing');
+  shownLap = 1;
+  showLap(1);
+  acc = 0
+}
+
+function tone(f, d = .07) {
+  if (!sound) return;
+  try {
+    audio ??= new(window.AudioContext || window.webkitAudioContext)();
+    audio.resume();
+    let o = audio.createOscillator(),
+      g = audio.createGain();
+    o.type = 'triangle';
+    o.frequency.value = f;
+    g.gain.setValueAtTime(.035, audio.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001, audio.currentTime + d);
+    o.connect(g);
+    g.connect(audio.destination);
+    o.start();
+    o.stop(audio.currentTime + d)
+  } catch {}
+}
+
+function end() {
+  state = 'ended';
+  tone(110, .25);
+  const finalScore = Math.floor(score);
+  if (finalScore > best) {
+    best = finalScore;
+    try {
+      localStorage.setItem(scoreKey(), best)
+    } catch {}
+  }
+  updateBest();
+  $('mapMenu').classList.remove('hidden');
+  for (const id of ['title', 'description', 'instructions', 'best']) $(id).classList.add(
+    'hidden');
+  $('result').classList.remove('hidden');
+  $('result').innerHTML = '<small>最高分</small><div style="font-size:25px;margin:6px 0 24px">' +
+    Math
+    .floor(best) + '</div><small>得分</small><div>' + finalScore + '</div>';
+  $('start').textContent = '再玩一次';
+  $('overlay').classList.remove('hidden');
+  $('controls').classList.add('hidden');
+  document.body.classList.remove('playing');
+  clear()
+}
+
+function pause() {
+  if (state === 'running') {
+    state = 'paused';
+    $('mapMenu').classList.remove('hidden');
+    $('title').classList.remove('hidden');
+    keys.left = keys.right = false;
+    $('title').textContent = '暫停';
+    $('result').classList.add('hidden');
+    $('instructions').classList.add('hidden');
+    $('start').textContent = '繼續';
+    $('overlay').classList.remove('hidden');
+  } else if (state === 'paused') {
+    state = 'running';
+    $('overlay').classList.add('hidden');
+    acc = 0
+  }
+}
+// 將起終點附近的距離展開到目前圈數，跨線時里程持續累加。
+function nearest() {
+  let bestD = Infinity,
+    res = null;
+  const lap = Math.floor(progress / total),
+    local = progress % total;
+  for (let i = 0; i < points.length - 1; i++) {
+    const a = points[i],
+      b = points[i + 1];
+    let start = a.s + lap * total;
+    if (a.s - local > total / 2) start -= total;
+    else if (a.s - local < -total / 2) start += total;
+    if (start < progress - 200 || start > progress + 240) continue;
+    const dx = b.x - a.x,
+      dy = b.y - a.y,
+      t = Math.max(0, Math.min(1, ((px - a.x) * dx + (py - a.y) * dy) / (dx * dx + dy * dy))),
+      x = a.x + t * dx,
+      y = a.y + t * dy,
+      d = Math.hypot(px - x, py - y);
+    if (d < bestD) {
+      bestD = d;
+      res = {
+        d,
+        s: start + t * (b.s - a.s),
+        x,
+        y
+      }
+    }
+  }
+  return res
+}
+// 入彎輕微減速，延長側滑並漸進恢復抓地；胎印固定在路面座標。
+function step(dt) {
+  time += dt;
+  const steering = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
+  if (steering !== previousSteering) {
+    steerHold = 0;
+    if (steering) driftTimer = DRIFT_DURATION
+  }
+  steerHold = steering ? steerHold + dt : 0;
+  previousSteering = steering;
+  driftTimer = Math.max(0, driftTimer - dt);
+  const recovery = Math.min(1, driftTimer / DRIFT_RECOVERY),
+    driftBlend = recovery * recovery * (3 - 2 * recovery);
+  const turnRate = TURN + 2.1 * Math.min(1, Math.max(0, (steerHold - .15) / .45)) * driftBlend;
+  angle += steering * turnRate * dt;
+  const gripRate = 28 + (4.8 - 28) * driftBlend;
+  travelAngle += (angle - travelAngle) * (1 - Math.exp(-gripRate * dt));
+  const cruise = 310 + Math.min(time / 20, 1) * 300;
+  const desired = cruise * (steering ? .94 : 1);
+  speed += (desired - speed) * (1 - Math.exp(-(steering ? 8 : 2.2) * dt));
+  px += Math.sin(travelAngle) * speed * dt;
+  py -= Math.cos(travelAngle) * speed * dt;
+  let n = nearest();
+  if (!n) {
+    end();
+    return
+  }
+  progress = Math.max(progress, n.s);
+  const lap = Math.floor(progress / total) + 1;
+  if (lap > shownLap) {
+    shownLap = lap;
+    showLap(lap)
+  }
+  if (n.d >= HALF - 13) {
+    end();
+    return
+  }
+  const drifting = driftTimer > 0 && Math.abs(angle - travelAngle) > .11;
+  skidClock += dt;
+  if (drifting && skidClock >= .02) {
+    skidClock = 0;
+    const c = Math.cos(angle),
+      s = Math.sin(angle),
+      rearX = px - s * 14,
+      rearY = py + c * 14;
+    const mark = {
+      lx: rearX - c * 10,
+      ly: rearY - s * 10,
+      rx: rearX + c * 10,
+      ry: rearY + s * 10
+    };
+    if (lastSkid) skids.push({
+      a: lastSkid,
+      b: mark,
+      t: time
+    });
+    lastSkid = mark
+  } else if (!drifting) lastSkid = null;
+  while (skids.length && (time - skids[0].t > 7 || skids.length > 700)) skids.shift();
+  if (n.d < 18) clean = Math.min(40, clean + dt);
+  else clean = Math.max(0, clean - dt * 2);
+  const mult = 1 + Math.min(4, clean / 10);
+  score += speed * dt / 30 * mult;
+  generate();
+  camAngle += (travelAngle - camAngle) * (1 - Math.exp(-5 * dt));
+  camX += (px - camX) * Math.min(1, dt * 8);
+  camY += (py - camY) * Math.min(1, dt * 10);
+  $('distance').innerHTML = String(Math.floor(progress / 25)).padStart(4, '0') + '<em> m</em>';
+  $('score').textContent = Math.floor(score);
+  $('multi').textContent = '×' + mult.toFixed(1)
+}
+
+function resize() {
+  W = canvas.clientWidth;
+  H = canvas.clientHeight;
+  dpr = Math.min(devicePixelRatio || 1, 2);
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+}
+window.addEventListener('resize', resize);
+
+function draw() {
+  ctx.fillStyle = '#252d2a';
+  ctx.fillRect(0, 0, W, H);
+  if (!points.length) return;
+  let scale = Math.min(1.35, Math.max(.62, W / 430), H / 680);
+  ctx.save();
+  ctx.translate(W / 2, H * .74);
+  ctx.scale(scale, scale);
+  ctx.rotate(-camAngle);
+  ctx.translate(-camX, -camY);
+  ctx.strokeStyle = '#354038';
+  ctx.lineWidth = 1;
+  const g = 100;
+  for (let x = Math.floor((camX - W / scale) / g) * g; x < camX + W / scale; x += g) {
+    ctx.beginPath();
+    ctx.moveTo(x, camY - H / scale);
+    ctx.lineTo(x, camY + H / scale);
+    ctx.stroke()
+  }
+  for (let y = Math.floor((camY - H / scale) / g) * g; y < camY + H / scale; y += g) {
+    ctx.beginPath();
+    ctx.moveTo(camX - W / scale, y);
+    ctx.lineTo(camX + W / scale, y);
+    ctx.stroke()
+  }
+
+  function path() {
+    ctx.beginPath();
+    points.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y))
+  }
+  ctx.lineJoin = 'round';
+  path();
+  ctx.strokeStyle = '#111915';
+  ctx.lineWidth = HALF * 2 + 18;
+  ctx.stroke();
+  path();
+  ctx.strokeStyle = '#d1cabb';
+  ctx.lineWidth = HALF * 2 + 10;
+  ctx.stroke();
+  path();
+  ctx.strokeStyle = '#555f50';
+  ctx.lineWidth = HALF * 2;
+  ctx.stroke();
+  path();
+  ctx.strokeStyle = '#c5c7a9';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([9, 16]);
+  ctx.lineDashOffset = ((points[0].s % 25) + 25) % 25;
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.lineDashOffset = 0;
+  // 兩條後輪胎印會留在路上，逐漸淡出。
+  ctx.lineWidth = 3;
+  for (const mark of skids) {
+    ctx.strokeStyle = 'rgba(14,20,16,' + (.65 * Math.max(0, 1 - (time - mark.t) / 7)) + ')';
+    ctx.beginPath();
+    ctx.moveTo(mark.a.lx, mark.a.ly);
+    ctx.lineTo(mark.b.lx, mark.b.ly);
+    ctx.moveTo(mark.a.rx, mark.a.ry);
+    ctx.lineTo(mark.b.rx, mark.b.ry);
+    ctx.stroke()
+  }
+  // 賽車使用幾何圖形繪製，不依賴外部圖片。
+  ctx.save();
+  ctx.translate(px, py);
+  ctx.rotate(angle);
+  ctx.fillStyle = '#141916';
+  ctx.fillRect(-13, -12, 7, 10);
+  ctx.fillRect(6, -12, 7, 10);
+  ctx.fillRect(-13, 9, 7, 11);
+  ctx.fillRect(6, 9, 7, 11);
+  ctx.fillStyle = '#d95230';
+  ctx.beginPath();
+  ctx.moveTo(-4, -22);
+  ctx.lineTo(4, -22);
+  ctx.lineTo(7, -7);
+  ctx.lineTo(9, 15);
+  ctx.lineTo(-9, 15);
+  ctx.lineTo(-7, -7);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillRect(-12, -18, 24, 4);
+  ctx.fillRect(-12, 16, 24, 5);
+  ctx.fillStyle = '#eee5cb';
+  ctx.fillRect(-1.5, -16, 3, 11);
+  ctx.fillRect(-1.5, 8, 3, 7);
+  ctx.fillStyle = '#18251f';
+  ctx.fillRect(-4, -3, 8, 10);
+  ctx.fillStyle = '#e9e6de';
+  ctx.fillRect(-2, -1, 4, 4);
+  ctx.restore();
+  ctx.restore();
+  drawMinimap()
+}
+
+function drawMinimap() {
+  if (!mapBounds) return;
+  const x = 18,
+    y = 16,
+    w = 132,
+    h = 116,
+    pad = 14,
+    b = mapBounds,
+    k = Math.min((w - pad * 2) / (b.maxX - b.minX), (h - 34) / (b.maxY - b.minY)),
+    ox = x + (w - (b.maxX - b.minX) * k) / 2,
+    oy = y + 27 + (h - 34 - (b.maxY - b.minY) * k) / 2;
+  ctx.save();
+  ctx.fillStyle = '#202723ee';
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = '#707b6c';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x, y, w, h);
+  ctx.fillStyle = '#c8cebf';
+  ctx.font = '10px Arial';
+  ctx.fillText('第 ' + (Math.floor(progress / total) + 1) + ' 圈', x + 10, y + 16);
+  ctx.strokeStyle = '#aab39e';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  points.forEach((p, i) => {
+    const mx = ox + (p.x - b.minX) * k,
+      my = oy + (p.y - b.minY) * k;
+    i ? ctx.lineTo(mx, my) : ctx.moveTo(mx, my)
+  });
+  ctx.closePath();
+  ctx.stroke();
+  ctx.fillStyle = '#e9e6de';
+  ctx.fillRect(ox + (points[0].x - b.minX) * k - 3, oy + (points[0].y - b.minY) * k - 3, 6, 6);
+  ctx.beginPath();
+  ctx.arc(ox + (px - b.minX) * k, oy + (py - b.minY) * k, 4, 0, Math.PI * 2);
+  ctx.fillStyle = '#eb613d';
+  ctx.fill();
+  ctx.strokeStyle = '#202723';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.restore()
+}
+
+function frame(now) {
+  let delta = Math.min((now - last) / 1000, .05);
+  last = now;
+  if (state === 'running') {
+    acc += delta;
+    while (acc >= 1 / 120 && state === 'running') {
+      step(1 / 120);
+      acc -= 1 / 120
+    }
+  } else acc = 0;
+  draw();
+  requestAnimationFrame(frame)
+}
+$('start').onclick = () => {
+  if (!trackReady) return;
+  tone(400);
+  state === 'paused' ? pause() : reset()
+};
+// Safari 另攔截長按選單和選取，保留 pointer capture 處理放開與取消。
+for (const event of ['selectstart', 'contextmenu', 'dragstart']) $('app').addEventListener(
+  event,
+  e => e.preventDefault());
+for (const side of ['left', 'right']) $(side).addEventListener('touchstart', e => e
+  .preventDefault(), {
+    passive: false
+  });
+
+function clear() {
+  keys.left = keys.right = false;
+  $('left').classList.remove('held');
+  $('right').classList.remove('held')
+}
+for (let side of ['left', 'right']) {
+  let b = $(side);
+  b.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    b.setPointerCapture(e.pointerId);
+    keys[side] = true;
+    b.classList.add('held')
+  });
+  for (let ev of ['pointerup', 'pointercancel', 'lostpointercapture']) b.addEventListener(ev,
+    () => {
+      keys[side] = false;
+      b.classList.remove('held')
+    })
+}
+window.addEventListener('keydown', e => {
+  if (!trackReady || $('mapHelp').open || /^(SELECT|INPUT|BUTTON)$/.test(e.target.tagName))
+    return;
+  if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' ', 'a', 'A', 'd', 'D', 'Escape',
+      'p', 'P'
+    ].includes(e.key)) e.preventDefault();
+  if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') keys.left = true;
+  if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') keys.right = true;
+  if (!e.repeat && (e.key === 'Escape' || e.key.toLowerCase() === 'p')) pause();
+  if (!e.repeat && e.key === ' ') {
+    if (state === 'ready' || state === 'ended') reset();
+    else pause()
+  }
+});
+window.addEventListener('keyup', e => {
+  if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') keys.left = false;
+  if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') keys.right = false
+});
+window.addEventListener('blur', () => {
+  clear();
+  if (state === 'running') pause()
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    clear();
+    if (state === 'running') pause()
+  }
+});
+updateBest();
+resize();
+requestAnimationFrame(frame);
+refreshMapList();
+  </script>
+</body>
+
+</html>
