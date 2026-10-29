@@ -250,9 +250,11 @@
       pointer-events: none
     }
 
+    .control-group { display: flex; gap: 4px; }
+    .controls .pedals button { font-size: 15px; }
     .controls button {
       pointer-events: auto;
-      width: 84px;
+      width: clamp(54px, 15vw, 84px);
       height: 58px;
       background: transparent;
       border-color: transparent;
@@ -404,11 +406,13 @@
     <main><canvas id="game" aria-label="無盡滑軌遊戲"></canvas>
       <div class="hud">
         <div class="stat"><small>里程</small><b id="distance">0000<em> m</em></b></div>
-        <div class="stat right"><small>分數</small><b id="score">0</b><small id="multi">×1.0</small></div>
+        <div class="stat right"><small>單圈計時</small><b id="timer">00:00.000</b><small>速度 <span id="speed">0</span></small></div>
       </div>
       <div id="lapToast" role="status" aria-live="polite"></div>
-      <div class="controls hidden" id="controls"><button id="left" aria-label="向左轉">←</button><button id="right"
-          aria-label="向右轉">→</button></div>
+      <div class="controls hidden" id="controls">
+        <div class="control-group"><button id="left" aria-label="向左轉">←</button><button id="right" aria-label="向右轉">→</button></div>
+        <div class="control-group pedals"><button id="brake" aria-label="減速">減速</button><button id="throttle" aria-label="加速">加速</button></div>
+      </div>
       <div id="overlay" class="overlay">
         <section class="panel">
           <h2 id="title">開始遊戲</h2>
@@ -421,7 +425,7 @@
             <input id="mapFile" type="file" accept=".txt,.json,text/plain,application/json" multiple hidden>
             <p id="mapStatus" role="status"></p>
           </div>
-          <div class="instructions" id="instructions">電腦：← →／A D 轉向<br>手機：按住左右鍵</div><button class="primary"
+          <div class="instructions" id="instructions">W 加速／S 減速／A D 轉向<br>R 重來 · 跑完一圈完成計時<br>手機：按住轉向與加減速鍵</div><button class="primary"
             id="start" disabled>開始</button>
           <p id="best" style="margin-bottom:0;font-size:11px"></p>
         </section>
@@ -463,13 +467,12 @@ let W = 0,
   acc = 0,
   sound = false,
   audio = null;
-let best = 0;
-try {
-  best = Number(localStorage.getItem('sliptrack-best-score') || 0)
-} catch {}
+let best = Infinity;
 let keys = {
     left: false,
-    right: false
+    right: false,
+    throttle: false,
+    brake: false
   },
   points = [],
   seed = 1729,
@@ -483,9 +486,6 @@ let keys = {
   angle = 0,
   travelAngle = 0,
   progress = 0,
-  score = 0,
-  clean = 0,
-  grip = 1,
   speed = 0,
   time = 0,
   camX = 0,
@@ -504,6 +504,13 @@ const DRIFT_DURATION = 3.0,
 const STEP = 8,
   HALF = 80,
   TURN = 1.05;
+// 速度單位與賽道座標一致；S 只煞車，不倒車。
+const DRIVE = {
+  maxSpeed: 610,
+  acceleration: 300,
+  braking: 420,
+  coastDrag: 18
+};
 
 function random() {
   seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
@@ -674,8 +681,8 @@ let trackReady = false,
   selectedMapId = '',
   selectionRevision = 0;
 
-function scoreKey() {
-  return 'sliptrack-best-score:' + selectedMapId;
+function bestTimeKey() {
+  return 'sliptrack-best-time:' + selectedMapId;
 }
 
 function pointHash(list) {
@@ -698,16 +705,16 @@ function applyMap(text, name) {
   TRACK_CONFIG.points = list;
   selectedMapId = pointHash(list);
   points = [];
-  total = progress = score = px = py = angle = travelAngle = camX = camY = camAngle = time = 0;
+  total = progress = speed = px = py = angle = travelAngle = camX = camY = camAngle = time = 0;
   skids = [];
   lastSkid = null;
   shownLap = 1;
   driftTimer = steerHold = 0;
   generate();
-  best = 0;
+  best = Infinity;
   try {
-    best = Number(localStorage.getItem(scoreKey()) || (name === '經典試煉' ? localStorage.getItem(
-      'sliptrack-best-score') : 0) || 0);
+    const saved = Number(localStorage.getItem(bestTimeKey()));
+    if (Number.isFinite(saved) && saved > 0) best = saved;
   } catch {}
   trackReady = true;
   state = 'ready';
@@ -723,8 +730,8 @@ function applyMap(text, name) {
   $('start').textContent = '開始';
   $('start').disabled = false;
   $('distance').innerHTML = '0000<em> m</em>';
-  $('score').textContent = '0';
-  $('multi').textContent = '×1.0';
+  $('timer').textContent = formatTime(0);
+  $('speed').textContent = '0';
   $('mapStatus').textContent = name + ' · ' + list.length + ' 點';
   updateBest();
 }
@@ -875,10 +882,20 @@ $('helpButton').onclick = () => {
 $('closeHelp').onclick = () => $('mapHelp').close();
 // 匯入視窗與選單的方向鍵、空白鍵不傳入遊戲。
 $('mapHelp').addEventListener('keydown', e => e.stopPropagation());
-$('mapMenu').addEventListener('keydown', e => e.stopPropagation());
+$('mapMenu').addEventListener('keydown', e => {
+  if (e.key.toLowerCase() !== 'r') e.stopPropagation();
+});
+
+function formatTime(seconds) {
+  if (!Number.isFinite(seconds)) return '--:--.---';
+  const ms = Math.floor(Math.max(0, seconds) * 1000 + 1e-6);
+  return String(Math.floor(ms / 60000)).padStart(2, '0') + ':' +
+    String(Math.floor(ms / 1000) % 60).padStart(2, '0') + '.' +
+    String(ms % 1000).padStart(3, '0');
+}
 
 function updateBest() {
-  $('best').textContent = '最高分 ' + Math.floor(best)
+  $('best').textContent = '最佳單圈 ' + formatTime(best);
 }
 let shownLap = 1;
 
@@ -891,11 +908,10 @@ function showLap(lap) {
 }
 
 function reset() {
+  document.activeElement?.blur();
   seed = 1729;
-  heading = turn = target = segment = total = px = py = angle = travelAngle = progress = score =
-    clean = time = 0;
-  grip = 1;
-  speed = 310;
+  heading = turn = target = segment = total = px = py = angle = travelAngle = progress = time = 0;
+  speed = 0;
   driftTimer = 0;
   steerHold = 0;
   previousSteering = 0;
@@ -917,12 +933,12 @@ function reset() {
   camY = 0;
   camAngle = 0;
   generate();
-  keys.left = keys.right = false;
+  clear();
   state = 'running';
   $('mapMenu').classList.add('hidden');
   $('distance').innerHTML = '0000<em> m</em>';
-  $('score').textContent = '0';
-  $('multi').textContent = '×1.0';
+  $('timer').textContent = formatTime(0);
+  $('speed').textContent = '0';
   $('overlay').classList.add('hidden');
   $('controls').classList.remove('hidden');
   document.body.classList.add('playing');
@@ -949,29 +965,29 @@ function tone(f, d = .07) {
   } catch {}
 }
 
+// 完成一圈才結束；碰撞由 step 處理，不呼叫 end。
 function end() {
   state = 'ended';
-  tone(110, .25);
-  const finalScore = Math.floor(score);
-  if (finalScore > best) {
-    best = finalScore;
+  speed = 0;
+  if (time < best) {
+    best = time;
     try {
-      localStorage.setItem(scoreKey(), best)
+      localStorage.setItem(bestTimeKey(), String(best));
     } catch {}
   }
   updateBest();
+  $('timer').textContent = formatTime(time);
+  $('speed').textContent = '0';
   $('mapMenu').classList.remove('hidden');
-  for (const id of ['title', 'description', 'instructions', 'best']) $(id).classList.add(
-    'hidden');
+  for (const id of ['title', 'description', 'instructions', 'best']) $(id).classList.add('hidden');
   $('result').classList.remove('hidden');
-  $('result').innerHTML = '<small>最高分</small><div style="font-size:25px;margin:6px 0 24px">' +
-    Math
-    .floor(best) + '</div><small>得分</small><div>' + finalScore + '</div>';
-  $('start').textContent = '再玩一次';
+  $('result').innerHTML = '<small>本圈時間</small><div>' + formatTime(time) +
+    '</div><small>最佳單圈</small><div style="font-size:25px;margin-top:6px">' + formatTime(best) + '</div>';
+  $('start').textContent = '再跑一次';
   $('overlay').classList.remove('hidden');
   $('controls').classList.add('hidden');
   document.body.classList.remove('playing');
-  clear()
+  clear();
 }
 
 function pause() {
@@ -979,7 +995,7 @@ function pause() {
     state = 'paused';
     $('mapMenu').classList.remove('hidden');
     $('title').classList.remove('hidden');
-    keys.left = keys.right = false;
+    clear();
     $('title').textContent = '暫停';
     $('result').classList.add('hidden');
     $('instructions').classList.add('hidden');
@@ -991,7 +1007,7 @@ function pause() {
     acc = 0
   }
 }
-// 將起終點附近的距離展開到目前圈數，跨線時里程持續累加。
+// 將起終點接縫展開，並只搜尋目前進度附近，避免切到鄰近的另一段路。
 function nearest() {
   let bestD = Infinity,
     res = null;
@@ -1028,7 +1044,7 @@ function step(dt) {
   const steering = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
   if (steering !== previousSteering) {
     steerHold = 0;
-    if (steering) driftTimer = DRIFT_DURATION
+    if (steering && speed > 80) driftTimer = DRIFT_DURATION
   }
   steerHold = steering ? steerHold + dt : 0;
   previousSteering = steering;
@@ -1036,30 +1052,57 @@ function step(dt) {
   const recovery = Math.min(1, driftTimer / DRIFT_RECOVERY),
     driftBlend = recovery * recovery * (3 - 2 * recovery);
   const turnRate = TURN + 2.1 * Math.min(1, Math.max(0, (steerHold - .15) / .45)) * driftBlend;
-  angle += steering * turnRate * dt;
+  angle += steering * turnRate * (.25 + .75 * Math.min(1, speed / 140)) * dt;
   const gripRate = 28 + (4.8 - 28) * driftBlend;
   travelAngle += (angle - travelAngle) * (1 - Math.exp(-gripRate * dt));
-  const cruise = 310 + Math.min(time / 20, 1) * 300;
-  const desired = cruise * (steering ? .94 : 1);
-  speed += (desired - speed) * (1 - Math.exp(-(steering ? 8 : 2.2) * dt));
+  // W 油門、S 煞車，鬆開油門會滑行；速度不超過設定上限。
+  if (keys.brake) speed -= DRIVE.braking * dt;
+  else if (keys.throttle) speed += DRIVE.acceleration * dt;
+  else speed -= DRIVE.coastDrag * dt;
+  if (steering) speed -= speed * .25 * dt;
+  speed = Math.max(0, Math.min(DRIVE.maxSpeed, speed));
   px += Math.sin(travelAngle) * speed * dt;
   py -= Math.cos(travelAngle) * speed * dt;
   let n = nearest();
   if (!n) {
-    end();
-    return
+    // 座標異常時回到目前路段，保留計時。
+    const p = points.find(p => p.s >= progress) || points.at(-1);
+    px = p.x;
+    py = p.y;
+    speed = 0;
+    lastSkid = null;
+    n = nearest();
+    if (!n) return;
   }
+  const wall = HALF - 15;
+  if (n.d > wall) {
+    // 將車推回牆內，消除朝牆的速度分量，沿牆滑行。
+    const nx = (px - n.x) / n.d,
+      ny = (py - n.y) / n.d;
+    const outward = Math.sin(travelAngle) * nx - Math.cos(travelAngle) * ny;
+    px = n.x + nx * wall;
+    py = n.y + ny * wall;
+    if (outward > 0) {
+      const vx = Math.sin(travelAngle) - nx * outward;
+      const vy = -Math.cos(travelAngle) - ny * outward;
+      const tangentSpeed = Math.hypot(vx, vy);
+      speed *= tangentSpeed * .85;
+      if (tangentSpeed > .05) travelAngle = angle + Math.atan2(
+        Math.sin(Math.atan2(vx, -vy) - angle), Math.cos(Math.atan2(vx, -vy) - angle));
+    }
+    lastSkid = null;
+  }
+  const previousProgress = progress;
   progress = Math.max(progress, n.s);
-  const lap = Math.floor(progress / total) + 1;
-  if (lap > shownLap) {
-    shownLap = lap;
-    showLap(lap)
-  }
-  if (n.d >= HALF - 13) {
+  if (progress >= total) {
+    // 插值計算跨終點線的時刻，避免多算整個物理步長。
+    time -= dt * (1 - Math.max(0, Math.min(1, (total - previousProgress) / (progress - previousProgress))));
+    progress = total;
+    $('distance').innerHTML = String(Math.floor(progress / 25)).padStart(4, '0') + '<em> m</em>';
     end();
-    return
+    return;
   }
-  const drifting = driftTimer > 0 && Math.abs(angle - travelAngle) > .11;
+  const drifting = speed > 50 && driftTimer > 0 && Math.abs(angle - travelAngle) > .11;
   skidClock += dt;
   if (drifting && skidClock >= .02) {
     skidClock = 0;
@@ -1081,17 +1124,13 @@ function step(dt) {
     lastSkid = mark
   } else if (!drifting) lastSkid = null;
   while (skids.length && (time - skids[0].t > 7 || skids.length > 700)) skids.shift();
-  if (n.d < 18) clean = Math.min(40, clean + dt);
-  else clean = Math.max(0, clean - dt * 2);
-  const mult = 1 + Math.min(4, clean / 10);
-  score += speed * dt / 30 * mult;
   generate();
   camAngle += (travelAngle - camAngle) * (1 - Math.exp(-5 * dt));
   camX += (px - camX) * Math.min(1, dt * 8);
   camY += (py - camY) * Math.min(1, dt * 10);
   $('distance').innerHTML = String(Math.floor(progress / 25)).padStart(4, '0') + '<em> m</em>';
-  $('score').textContent = Math.floor(score);
-  $('multi').textContent = '×' + mult.toFixed(1)
+  $('timer').textContent = formatTime(time);
+  $('speed').textContent = Math.round(speed)
 }
 
 function resize() {
@@ -1155,6 +1194,20 @@ function draw() {
   ctx.stroke();
   ctx.setLineDash([]);
   ctx.lineDashOffset = 0;
+  // 起終點線與單圈計時使用相同的賽道起點。
+  const start = points[0],
+    next = points[1],
+    dx = next.x - start.x,
+    dy = next.y - start.y;
+  const len = Math.hypot(dx, dy),
+    nx = -dy / len,
+    ny = dx / len;
+  ctx.strokeStyle = '#eee8d7';
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(start.x - nx * HALF, start.y - ny * HALF);
+  ctx.lineTo(start.x + nx * HALF, start.y + ny * HALF);
+  ctx.stroke();
   // 兩條後輪胎印會留在路上，逐漸淡出。
   ctx.lineWidth = 3;
   for (const mark of skids) {
@@ -1218,7 +1271,7 @@ function drawMinimap() {
   ctx.strokeRect(x, y, w, h);
   ctx.fillStyle = '#c8cebf';
   ctx.font = '10px Arial';
-  ctx.fillText('第 ' + (Math.floor(progress / total) + 1) + ' 圈', x + 10, y + 16);
+  ctx.fillText('單圈計時', x + 10, y + 16);
   ctx.strokeStyle = '#aab39e';
   ctx.lineWidth = 2.5;
   ctx.beginPath();
@@ -1263,17 +1316,18 @@ $('start').onclick = () => {
 for (const event of ['selectstart', 'contextmenu', 'dragstart']) $('app').addEventListener(
   event,
   e => e.preventDefault());
-for (const side of ['left', 'right']) $(side).addEventListener('touchstart', e => e
+for (const side of ['left', 'right', 'throttle', 'brake']) $(side).addEventListener('touchstart', e => e
   .preventDefault(), {
     passive: false
   });
 
 function clear() {
-  keys.left = keys.right = false;
-  $('left').classList.remove('held');
-  $('right').classList.remove('held')
+  for (const side of ['left', 'right', 'throttle', 'brake']) {
+    keys[side] = false;
+    $(side).classList.remove('held');
+  }
 }
-for (let side of ['left', 'right']) {
+for (let side of ['left', 'right', 'throttle', 'brake']) {
   let b = $(side);
   b.addEventListener('pointerdown', e => {
     e.preventDefault();
@@ -1287,23 +1341,43 @@ for (let side of ['left', 'right']) {
       b.classList.remove('held')
     })
 }
+const keyControls = {
+  a: 'left',
+  d: 'right',
+  w: 'throttle',
+  s: 'brake',
+  ArrowLeft: 'left',
+  ArrowRight: 'right',
+  ArrowUp: 'throttle',
+  ArrowDown: 'brake'
+};
 window.addEventListener('keydown', e => {
-  if (!trackReady || $('mapHelp').open || /^(SELECT|INPUT|BUTTON)$/.test(e.target.tagName))
+  if (!trackReady || $('mapHelp').open || /^(SELECT|INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
+  const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (key === 'r') {
+    e.preventDefault();
+    if (!e.repeat) reset();
     return;
-  if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' ', 'a', 'A', 'd', 'D', 'Escape',
-      'p', 'P'
-    ].includes(e.key)) e.preventDefault();
-  if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') keys.left = true;
-  if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') keys.right = true;
-  if (!e.repeat && (e.key === 'Escape' || e.key.toLowerCase() === 'p')) pause();
-  if (!e.repeat && e.key === ' ') {
+  }
+  if (keyControls[key]) {
+    if (state !== 'running') return;
+    e.preventDefault();
+    keys[keyControls[key]] = true;
+  }
+  if (!e.repeat && (key === 'Escape' || key === 'p')) {
+    e.preventDefault();
+    pause();
+  }
+  if (!e.repeat && key === ' ' && e.target.tagName !== 'BUTTON') {
+    e.preventDefault();
     if (state === 'ready' || state === 'ended') reset();
-    else pause()
+    else pause();
   }
 });
 window.addEventListener('keyup', e => {
-  if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') keys.left = false;
-  if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') keys.right = false
+  const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+  if (keyControls[key]) keys[keyControls[key]] = false;
 });
 window.addEventListener('blur', () => {
   clear();
